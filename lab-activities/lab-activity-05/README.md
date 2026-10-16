@@ -12,9 +12,9 @@ Concurrent Systems a.y. 2026-2027 - ISI LM UNIBO - Cesena Campus
 - "How many threads" example: `sisco.how_many_threads`
   - about the limitations that we have with platform (OS) threads in Java
 
-### Multithreaded programming in Java: Performances, CPU vs. I/O bound programs
+### Multithreaded programming in Java: Performance, CPU vs. I/O bound programs
 
-- On the benefit of multithreading - "concurrent sorting" case study
+- On the performance benefit of multithreading - "concurrent sorting" case study
   - Consider the sequential program: `sisco.concur_sort` - it creates and sorts an array. Let's create a concurrent version exploiting 2 threads
      -  measure the speedup
    - Generalising the solution to scale with the number of cores

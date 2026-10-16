@@ -2,12 +2,24 @@ package sisco.io_bound_test;
 
 import java.util.*;
 
-
+/**
+ * 
+ * Testing performance for I/O bound programs
+ * by running a number of worker threads mixing
+ * both CPU and blocking-I/O related behaviour
+ * 
+ *  
+ * About nWorkers:
+ * 
+ * - first try with NCPU + 1 threads (like CPU-bound)
+ * - then try with more threads and see 
+ * 
+ */		
 public class Test {
 	
 	public static void main(String[] args) {
 
-		int nWorkers = Runtime.getRuntime().availableProcessors();
+		int nWorkers = Runtime.getRuntime().availableProcessors(); 
 		
 		long totalAmountOfCPUJob = 800_000_000;
 		long totalAmountOfIOJob = 20000; 

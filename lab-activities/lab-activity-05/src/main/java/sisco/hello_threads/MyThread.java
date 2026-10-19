@@ -8,9 +8,9 @@ public class MyThread extends Thread {
 	
 	public void run(){
 		log("Hello concurrent world!");
-		log("Sleeping for 5 secs...");
+		log("Sleeping for 50 secs...");
 		try {
-			Thread.sleep(5000);
+			Thread.sleep(50000);
 		} catch (InterruptedException ex) {
 			ex.printStackTrace();
 		}

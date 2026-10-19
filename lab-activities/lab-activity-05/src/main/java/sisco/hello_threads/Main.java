@@ -34,6 +34,14 @@ public class Main {
 		myThreadOne.join();
 		myThreadTwo.join();
 
+		new Thread(() -> {
+			log("this is another thread...");
+			try {
+				Thread.sleep(5000);
+			} catch (Exception ex) {}
+			log("done");
+		}).start();
+		
 		/* Notify clock to stop (deferred cancellation) -- "stop" method is deprecated */
 		
 		clock.notifyStop();

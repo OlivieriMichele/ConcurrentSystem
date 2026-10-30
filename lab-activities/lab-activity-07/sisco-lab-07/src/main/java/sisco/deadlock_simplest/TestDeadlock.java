@@ -12,7 +12,9 @@ public class TestDeadlock {
 		Resource resBeta = new Resource("Resource-BETA");
 		new Worker(resAlfa, resBeta).start();
 		new Worker(resBeta, resAlfa).start();
-		// new Worker(resAlfa, resBeta).start();
+		//new Worker(resAlfa, resBeta).start();
+		/* 	calling in orther avoid deadlock, but it is not a good solution, 
+			because it is not scalable and it is not flexible */
 	}
 
 }

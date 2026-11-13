@@ -16,7 +16,7 @@ public class SimulationMain {
     	NBodySimulation sim = new NBodySimulation();
     	
     	// sim.init(TestBodySets.bodySet_two_bodies());
-    	// sim.init(TestBodySets.bodySet_three_bodies());    	
+    	//sim.init(TestBodySets.bodySet_three_bodies());    	
     	sim.initRandom(5000);
     	
     	int nSteps = 100;

@@ -1,159 +1,159 @@
-# Piano di Coordinamento e Metodologia di Team - Assignment #02
+# Piano di Lavoro Pragmatico & Snello — Assignment #02
 **Corso:** Sistemi Concorrenti (Laurea Magistrale ISI - UNIBO Cesena)  
 **Docente:** Prof. Alessandro Ricci  
-**Ruolo:** Team Manager & Architetto Concorrente  
+**Target:** Chiusura completa in **3–4 giorni effettivi** con il massimo voto e zero attriti.
 
 ---
 
-## 1. Obiettivo Strategico del Team
+## 1. Filosofia: Massima Efficienza, Zero Burocrazia
 
-L'obiettivo primario di questo piano di lavoro è garantire che entrambi i membri del team (**Membro 1** e **Membro 2**) acquisiscano una **piena padronanza concettuale, architetturale e implementativa** dell'intero progetto, eliminando il rischio di *isole di competenza* ("silos").
+In un corso da **6 CFU con 3 assignment** (in cui il terzo, focalizzato su modelli asincroni/distribuiti come Akka/Vert.x, sarà tipicamente il più impegnativo del corso), spendere 10-12 giorni su questo singolo assignment con cerimonie da team enterprise (decine di branch, Pull Request bloccanti, mock interview formali da un'ora, suite di benchmark multipiattaforma) è un dispendio inutile di energie.
 
-All'esame orale con il docente, entrambi i membri devono essere in grado di:
-1. Spiegare e giustificare ogni singola riga di codice concorrente (perché un `wait()` è dentro un `while`, dove si trova la sezione critica, perché non ci sono data race).
-2. Spiegare sia la versione a **Thread + Monitor** sia quella basata su **Executor Framework**, evidenziandone differenze prestazionali e modelli di memoria.
-3. Argomentare il modello formale **FSP/LTSA** e i risultati del model-checking con **Java PathFinder (JPF)**.
-4. Spiegare come il disaccoppiamento tra il motore di simulazione e l'Event Dispatch Thread (EDT) della GUI garantisce liveness e reattività senza deadlock.
+Il Prof. Ricci valuta:
+1. **La pulizia concettuale del codice concorrente** (assenza di data race, gestione pulita di `wait`/`notifyAll` nei monitor, corretto dimensionamento dei thread pool).
+2. **La correttezza del Monitor custom** e del pattern a barriera.
+3. **La specifica formale FSP** (con assenza di deadlock in LTSA) e la verifica minimale con **JPF**.
+4. **Una relazione sintetica, precisa e chirurgica** (non un trattato di 30 pagine).
 
----
-
-## 2. Il Modello di Collaborazione: *Cross-Defense & Inverted Verification*
-
-### L'Anti-Pattern da Evitare: *Silos Orizzontale*
-- ❌ *Persona A fa il motore concorrente, Persona B fa la GUI e la relazione.*  
-  **Esito:** Persona A non sa come funziona l'EDT e i comandi interattivi; Persona B non sa giustificare il monitor a barriera e viene penalizzata all'orale.
-
-### Il Modello Vincente: *Sviluppo Parallelo a Validazione Incrociata*
-- ✅ Ogni componente ha un **Autore Primario (Lead Dev)** e un **Validatore Critico (Reviewer & Tester)**.
-- ✅ Chi scrive l'implementazione $A$ deve essere l'artefice dei test/benchmark dell'implementazione $B$, e viceversa.
-- ✅ I contratti d'interfaccia e i modelli formali si definiscono sempre a quattro mani.
-
-```
-+--------------------------------------------------------------------------+
-|  FASE 0 (INSIEME): Design Architetturale, Modello FSP, Contratti shared  |
-+--------------------------------------------------------------------------+
-             |                                              |
-      [Membro 1: Autore]                             [Membro 2: Autore]
-   Versione Thread + Monitor Barrier               Versione Executor Framework
-             |                                              |
-   [Membro 2: Reviewer & JPF Test]                [Membro 1: Reviewer & Benchmark]
-   Scrive model check JPF per Monitor             Scrive test prestazionali & speedup
-             |                                              |
-+--------------------------------------------------------------------------+
-|  FASE 2 (INCROCIATA): GUI Controller Monitor & Decoupling EDT            |
-|  - Membro 1: State Monitor (PAUSED, STOP, STEP) con wait/notify          |
-|  - Membro 2: View & EDT Decoupling (Snapshot immutabili su Swing/JavaFX) |
-+--------------------------------------------------------------------------+
-             |
-+--------------------------------------------------------------------------+
-|  FASE 3 (INSIEME): Relazione Tecnica e "Mock Oral Exam" di coppia        |
-+--------------------------------------------------------------------------+
-```
+Non viene valutato il workflow Git né la complessità del processo.
 
 ---
 
-## 3. Roadmap Operativa Dettagliata
+## 2. Regole di Workflow Snello
 
-### Fase 0: Definizione dei Contratti e Architettura Comune (Insieme)
-*Durata stimata: 1 sessione congiunta (2-3 ore).*
-
-Prima di scrivere codice, entrambi i membri stabiliscono:
-1. **L'Invariante di Correttezza per $N$-Body:**
-   - La simulazione ad ogni passo temporale $dt$ è divisa in **due fasi distinte**:
-     - *Fase 1 (Lettura globale / Scrittura locale):* Ogni worker calcola le forze sul proprio sottoinsieme di corpi $b[i]$ leggendo le posizioni al tempo $t$ di tutti i corpi $b[j]$. Nessun corpo modifica la propria posizione in questa fase $\rightarrow$ **zero data race**.
-     - *Barriera 1:* Tutti i worker devono terminare il calcolo prima di procedere.
-     - *Fase 2 (Scrittura disgiunta):* Ogni worker aggiorna posizione e velocità del proprio sottoinsieme $b[i]$ usando la velocità calcolata.
-     - *Barriera 2:* Consolidamento dello stato al tempo $t+dt$.
-2. **Interfaccia Comune del Motore (`SimulationEngine`):**
-   ```java
-   public interface SimulationEngine {
-       void init(int nBodies, int nSteps, int nWorkers);
-       void execute(); // Per la versione headless dello Step 1
-   }
-   ```
-3. **Modello FSP Preliminare:**
-   Stesura alla lavagna del processo che modella il ciclo a due barriere per comprendere la sequenza di stati.
+* **Git minimale:** 
+  * Un solo branch principale (`main`) o al massimo un branch condiviso `dev`.
+  * Nessuna Pull Request bloccante o code review formale.
+  * Coordinamento asincrono informale (WhatsApp/Telegram): ci si avvisa prima di pushare se si tocca un file condiviso.
+* **Riutilizzo al 100% del codice del Prof:**
+  * Il package `sisco.ass02.n_body_seq` fornisce già la fisica dei corpi (`Body`), i vettori (`P2d`, `V2d`), le costanti gravitazionali e una GUI funzionante (`SimulationView`, `SimulationMainWithGUI`).
+  * **Non si riscrive nulla della fisica o del motore da zero**: si adatta, si incapsula e si parallelizza ciò che è già presente.
 
 ---
 
-### Fase 1: Step 1 (Headless & Performance) ad Assegnazione Incrociata
-*Durata stimata: 4-5 giorni.*
+## 3. Divisione Pragmatica dei Compiti (Zero Dipendenze)
 
-| Aspetto | Membro 1 | Membro 2 |
-| :--- | :--- | :--- |
-| **Implementazione Thread + Monitor** | **Lead Developer:** Implementa la classe Monitor `Barrier` (custom monitor con `synchronized`, `wait()`, `notifyAll()`) e la classe `SimulationWorkerThread` (thread persistenti). | **Reviewer & JPF Tester:** Esegue il code review riga per riga. Crea la configurazione e il modello semplificato per **Java PathFinder (JPF)** per verificare l'assenza di deadlock e la correttezza del monitor. |
-| **Implementazione Task-based (Executors)** | **Reviewer & Benchmarker:** Esegue il code review riga per riga. Scrive la suite di benchmark per misurare tempo di esecuzione e speedup scalando il numero di worker da 1 a $N$ core. | **Lead Developer:** Progetta e implementa l'`ExecutorService` con pool di thread fisso e la sottomissione dei task di calcolo (`invokeAll()` con lista di `Callable`). |
+Il lavoro è separato in due blocchi indipendenti in modo che entrambi i membri possano partire immediatamente in autonomia senza bloccarsi a vicenda:
 
-> **Regola aurea:** Membro 2 non può dire "non so come funziona la barriera", perché è lui che ha dovuto modellarla e farla passare su JPF! Membro 1 non può dire "non conosco l'Executor", perché è lui che ha scritto il benchmark per misurarne lo scalamento!
+| Membro | Compiti Assegnati (Indipendenti) | Output Concreto | Tempo Stimato |
+| :--- | :--- | :--- | :--- |
+| **Membro 1** | **1. Step 1 (Thread + Monitor):**<br>• Scrive la classe `CyclicBarrierMonitor` (con `wait()`, `notifyAll()`, e generation counter).<br>• Scrive i `WorkerThread` con partizionamento statico per indici.<br>**2. Verifica JPF:**<br>• Crea una classe di test JPF minimale (~20 righe) con 2 thread e la barriera, verificando l'assenza di deadlock. | `CyclicBarrierMonitor.java`<br>`SimulationWorker.java`<br>`TestJPFBarrier.java` | ~1.5 giorni |
+| **Membro 2** | **1. Step 1 (Executor Framework):**<br>• Riadatta il ciclo di simulazione usando `ExecutorService` (`newFixedThreadPool`) e sottomettendo i task con `invokeAll()`.<br>**2. Benchmark di Scalabilità:**<br>• Scrive una classe `BenchmarkMain` ed esegue i test sul proprio PC (il più performante dei due) registrando i tempi `Seq` vs `Threads` vs `Executors` su 1, 2, 4, 8 core. | `NBodyExecutorSim.java`<br>`BenchmarkMain.java`<br>Tabella/Grafico tempi e speedup | ~1.5 giorni |
+| **Insieme / Chi finisce prima** | **Step 2 (GUI & Controller):**<br>• Prende `SimulationMainWithGUI` e `SimulationView` del prof.<br>• Aggiunge un pannello con 4 bottoni (`Start`, `Stop`, `Suspend`, `Step`).<br>• Scrive un piccolo Monitor `SimulationController` con lock/condition per gestire gli stati (`RUNNING`, `PAUSED`, `STOPPED`, `STEP`). | `SimulationController.java`<br>`SimulationGUI.java` | ~1 giorno |
 
 ---
 
-### Fase 2: Step 2 (GUI & Controllo Interattivo)
-*Durata stimata: 3-4 giorni.*
+## 4. Specifiche Tecniche Chirurgiche
 
-Lo Step 2 richiede la gestione asincrona dei comandi (`Start`, `Stop`, `Suspend`, `Step-by-Step`) e la visualizzazione fluida senza bloccare la grafica.
-
-#### Suddivisione dei compiti:
-- **Membro 1 $\rightarrow$ Il Monitor di Controllo dello Stato (`SimulationController`):**
-  - Implementa un Monitor che gestisce la macchina a stati: `IDLE`, `RUNNING`, `PAUSED`, `STEPPING`, `STOPPED`.
-  - Fornisce il metodo bloccante `checkState()` richiamato dal motore di simulazione al termine di ogni iterazione:
-    - Se lo stato è `PAUSED`, il thread di simulazione si sospende (`wait()`).
-    - Un click su `Resume` o `Step` risveglia il thread (`notifyAll()`).
-  - Gestisce l'arresto pulito (`STOPPED`) senza utilizzare `Thread.stop()` (deprecato).
-
-- **Membro 2 $\rightarrow$ Il Disaccoppiamento Grafico & EDT:**
-  - Sviluppa la View (Swing/JavaFX) con pannello di controllo e canvas di rendering.
-  - Implementa il pattern a **Snapshot Immutabili**: il thread di simulazione, completata l'iterazione, genera un clone leggero/array immutabile delle coordinate dei corpi e invoca il rendering asincrono tramite:
+### 4.1 Step 1 - Multithreading con Monitor (Membro 1)
+* **Monitor `CyclicBarrierMonitor`:**
+  * Implementato con `synchronized`, `wait()`, `notifyAll()`.
+  * Utilizza una variabile `generation` per evitare risvegli spuri e consentire il riutilizzo ciclico sicuro nei passi temporali successivi:
     ```java
-    SwingUtilities.invokeLater(() -> view.render(snapshot));
+    public synchronized void await() throws InterruptedException {
+        int myGen = this.generation;
+        arrived++;
+        if (arrived == totalParticipants) {
+            arrived = 0;
+            generation++;
+            notifyAll();
+        } else {
+            while (myGen == this.generation) {
+                wait();
+            }
+        }
+    }
     ```
-  - Questo garantisce che la simulazione proceda senza attendere il refresh dello schermo e che l'EDT non rimanga mai congelato.
+* **Worker Thread:**
+  * Creati una sola volta all'inizio (persistenti per tutti gli $M$ step).
+  * Ricevono `startIndex` e `endIndex` per iterare solo sulla propria fetta di corpi.
+  * Ciclo: Calcolo Forze $\rightarrow$ `barrier1.await()` $\rightarrow$ Aggiornamento Posizioni $\rightarrow$ `barrier2.await()`.
 
-#### Inversione per la Validazione:
-Membro 2 conduce uno **stress test** dell'interfaccia: clic ripetuti, combinazioni rapide (*Pause $\rightarrow$ Step $\rightarrow$ Step $\rightarrow$ Resume $\rightarrow$ Stop*) per verificare che il Monitor di Membro 1 non si blocchi in deadlock o perda risvegli (*lost wakeups*).
+### 4.2 Step 1 - Task con Executor (Membro 2)
+* Creazione di `ExecutorService executor = Executors.newFixedThreadPool(nWorkers)`.
+* Ad ogni step:
+  1. `executor.invokeAll(forceTasks)` $\rightarrow$ Barriera implicita 1.
+  2. `executor.invokeAll(posTasks)` $\rightarrow$ Barriera implicita 2.
+* Evitare di ricreare le liste di task da zero ad ogni iterazione: pre-istanziare i task e ri-sottomettere gli stessi `Callable`/`Runnable`.
 
----
+### 4.3 Verifica JPF (Membro 1)
+* File di test compatto (`TestJPFBarrier.java`): 2 thread che eseguono 2 iterazioni su una barriera a 2 partecipanti con asserzione finale.
+* JPF deve verificare semplicemente l'assenza di deadlock e race condition sul monitor. L'esecuzione deve completarsi in pochi secondi.
 
-### Fase 3: Benchmark, Model-Checking e Relazione
-*Durata stimata: 3 giorni.*
+### 4.4 Benchmark e Performance (Membro 2)
+* Esecuzione su **una sola macchina** con CPU multicore (es. Apple Silicon o Intel recente):
+  * $N = 5000$ corpi, $M = 100$ step.
+  * Core: $1, 2, 4, 8$ worker.
+* Output: un file `.csv` o direttamente la tabella dei tempi medi con calcolo di:
+  $$\text{Speedup } S(p) = \frac{T_1}{T_p}, \quad \text{Efficienza } E(p) = \frac{S(p)}{p}$$
 
-1. **Test di Scalabilità (Prestazioni):**
-   - Eseguire i test su **entrambi i computer** dei membri del team (utile se uno ha Mac Apple Silicon e l'altro Intel/AMD x86, per mostrare portabilità e comportamento differente della JVM).
-   - Grafici di confronto: *Speedup vs Numero di Core* (1, 2, 4, 8, 16 worker) e calcolo dell'overhead tra *Thread persistenti* e *Task Executors*.
-2. **Scrittura della Relazione (`doc/`):**
-   - Si scrive a sezioni incrociate: l'autore di una sezione la redige, l'altro la revisiona formulando obiezioni critiche prima del commit finale.
-   - Entrambi verificano la correttezza formale della specifica FSP e delle formule FLTL.
-
----
-
-### Fase 4: La Simulazione d'Esame ("Mock Defense")
-*Durata stimata: 1 ora prima della consegna definitiva.*
-
-Prendetevi un'ora in cui ciascuno interroga l'altro simulando le tipiche domande d'esame del Prof. Ricci.
-
-#### Checklist di verifica incrociata:
-- [ ] **Membro 1 interroga Membro 2:**
-  - *"Come garantisce `invokeAll()` la sincronizzazione tra la Fase 1 e la Fase 2 nell'implementazione ad Executor?"*
-  - *"Nel disaccoppiamento GUI-motore, cosa succederebbe se passassimo alla View direttamente il riferimento all'array dei corpi anziché uno snapshot?"*
-- [ ] **Membro 2 interroga Membro 1:**
-  - *"Nel Monitor `Barrier`, perché usiamo `notifyAll()` anziché `notify()`? In quale scenario `notify()` causerebbe un deadlock?"*
-  - *"Se l'utente preme 'Pause' mentre i worker stanno calcolando le forze nel mezzo di uno step, dove e quando viene intercettata la sospensione?"*
-- [ ] **Entrambi verificano il Modello FSP:**
-  - *"Quali sono le proprietà di Safety e Liveness verificate tramite LTSA? Cosa significa la violazione di una proprietà FLTL in questo contesto?"*
+### 4.5 Step 2 - GUI con Monitor di Stato (Insieme)
+* Si riutilizza `SimulationView` fornita dal prof.
+* Si aggiunge un pannello pulsanti in testa o in coda al frame (`FlowLayout` con JButton `Start`, `Suspend/Resume`, `Step`, `Stop`).
+* Il `SimulationController` (Monitor) espone:
+  * `start()`, `pause()`, `resume()`, `step()`, `stop()`.
+  * `checkAndWait()` richiamato dal thread coordinatore ad ogni step: se è in stato `PAUSED` e non è stato richiesto uno `step`, si mette in `wait()`.
+* **Rendering thread-safe:** Inviare alla View una copia leggera delle posizioni via `SwingUtilities.invokeLater()`, così l'EDT non blocca la simulazione e non si verificano eccezioni di concorrenza.
 
 ---
 
-## 4. Regole Operative per Git
+## 5. Struttura Chirurgica della Relazione (`doc/`)
 
-Per mantenere un repository ordinato ed evitare conflitti:
+Il README richiede esplicitamente *"a brief analysis"* e *"a brief description"*. Puntiamo a **6–8 pagine complessive**, dense e prive di riempitivi:
 
-1. **Branch dedicati per feature:**
-   - `feature/step1-barrier-threads` (Membro 1)
-   - `feature/step1-executors` (Membro 2)
-   - `feature/step2-controller-monitor` (Membro 1)
-   - `feature/step2-gui-view` (Membro 2)
-2. **Review prima del Merge:**
-   - Nessun merge diretto su `master`.
-   - Ogni Pull Request deve essere letta e approvata dall'altro membro.
-3. **Ignorare file compilati:**
-   - Assicurarsi che le cartelle `target/` e i file `.class` siano sempre esclusi per non sporcare la cronologia di git.
+1. **Analisi del Problema e Concorrenza (1 pagina):**
+   * Perché non servono lock sui singoli corpi (fasi disgiunte di lettura/scrittura).
+   * Perché servono due barriere per step (lettura globale posizioni al tempo $t$ vs scrittura locale posizioni al tempo $t+dt$).
+2. **Architettura e FSP (2 pagine):**
+   * Diagramma essenziale delle classi (o elenco conciso dei ruoli).
+   * Specifica FSP del ciclo di simulazione e del monitor a barriera (circa 30–40 righe di FSP).
+   * Screenshot dell'output di LTSA che attesta l'assenza di deadlock.
+3. **Verifica con JPF (1 pagina):**
+   * Spiegazione della riduzione di scala necessaria per evitare lo *state space explosion*.
+   * Codice del micro-test verificato.
+   * Output testuale di JPF (*"no errors detected, elapsed time: Xs"*).
+4. **Valutazione delle Performance (1.5 – 2 pagine):**
+   * Tabella comparativa: Sequenziale vs Threads vs Executors (su 1, 2, 4, 8 thread).
+   * Grafico di Speedup ed Efficienza.
+   * Breve commento tecnico (legge di Amdahl, impatto dell'overhead di sottomissione task negli Executors rispetto ai thread persistenti).
+5. **Architettura GUI dello Step 2 (1 pagina):**
+   * Descrizione del monitor `SimulationController`.
+   * Disaccoppiamento tra il motore di simulazione e l'Event Dispatch Thread (EDT) di Swing tramite snapshot asincroni.
+
+---
+
+## 6. Allineamento Pre-Esame (30 Minuti, Non un Processo)
+
+Il giorno prima dell'orale o della consegna, fate una chiamata Discord/Teams di **30 minuti** con condivisione schermo:
+* **Membro 1** condivide lo schermo e illustra a Membro 2:
+  * Come ha scritto `CyclicBarrierMonitor` (perché il generation counter, perché `notifyAll()`).
+  * Il micro-test JPF e il modello FSP.
+* **Membro 2** condivide lo schermo e illustra a Membro 1:
+  * Come ha strutturato l'`ExecutorService` e la sottomissione con `invokeAll()`.
+  * La tabella/grafico dei benchmark.
+* **Entrambi** provano insieme la GUI verificando la reattività dei 4 bottoni.
+
+Questo allineamento è più che sufficiente per rispondere con sicurezza e padronanza a qualsiasi domanda del docente all'orale.
+
+---
+
+## 7. Tabella di Marcia (3–4 Giorni)
+
+```
+Giorno 1:
+├── Membro 1: Scrittura CyclicBarrierMonitor + WorkerThread
+└── Membro 2: Scrittura versione ExecutorService con invokeAll()
+
+Giorno 2:
+├── Membro 1: Test JPF su barriera + Modello FSP per LTSA
+└── Membro 2: Esecuzione benchmark prestazioni (Seq vs Thread vs Executor)
+
+Giorno 3:
+├── Insieme: Integrazione GUI (Controller con Start/Stop/Suspend/Step)
+└── Insieme: Stesura prime sezioni della relazione doc/
+
+Giorno 4:
+├── Insieme: Finalizzazione relazione (grafici + screenshot LTSA/JPF)
+├── Allineamento 30 minuti pre-esame a schermo condiviso
+└── Creazione archivio finale Assignment-02.zip
+```

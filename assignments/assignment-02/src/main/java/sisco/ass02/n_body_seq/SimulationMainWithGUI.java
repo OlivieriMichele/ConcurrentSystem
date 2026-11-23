@@ -16,8 +16,8 @@ public class SimulationMainWithGUI {
     	NBodySimulation sim = new NBodySimulation(view);
     	
     	// sim.init(TestBodySets.bodySet_two_bodies());
-    	// sim.init(TestBodySets.bodySet_three_bodies());    	
-    	sim.initRandom(5000);
+    	//sim.init(TestBodySets.bodySet_three_bodies());    	
+    	sim.initRandom(10);
     	
     	sim.execute(nSteps);
    }
